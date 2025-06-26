@@ -1,0 +1,17 @@
+# k8s/configmap-wordpress.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: wordpress-config
+  namespace: NAMESPACE_PLACEHOLDER
+data:
+  # wp-config.php settings that are NOT sensitive.
+  # Sensitive settings (DB_PASSWORD) should come from Secrets.
+  # This config map could contain common settings, but typically WordPress uses env vars directly.
+  # This example mostly serves as a placeholder for general WordPress config if needed.
+  php.ini: |
+    memory_limit = 256M
+    upload_max_filesize = 20M
+    post_max_size = 20M
+    max_execution_time = 300
+    date.timezone = Europe/Kyiv

@@ -1,0 +1,78 @@
+# k8s/mariadb-statefulset.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: wordpress-mariadb
+  namespace: NAMESPACE_PLACEHOLDER
+  labels:
+    app: wordpress
+    tier: database
+spec:
+  serviceName: "wordpress-mariadb"
+  replicas: 1 # For production, consider multiple replicas with replication setup
+  selector:
+    matchLabels:
+      app: wordpress
+      tier: database
+  template:
+    metadata:
+      labels:
+        app: wordpress
+        tier: database
+    spec:
+      containers:
+        - name: mariadb
+          image: MARIADB_IMAGE_PLACEHOLDER # Use image from .env
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: wordpress-secrets
+                  key: mariadb-root-password
+            - name: MYSQL_DATABASE
+              value: MARIADB_DATABASE_PLACEHOLDER
+            - name: MYSQL_USER
+              value: MARIADB_USER_PLACEHOLDER
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: wordpress-secrets
+                  key: mariadb-password
+          ports:
+            - containerPort: 3306
+              name: mysql
+          volumeMounts:
+            - name: mariadb-persistent-storage
+              mountPath: /var/lib/mysql
+          livenessProbe:
+            exec:
+              command: ["mysqladmin", "-u", "root", "-p$(MYSQL_ROOT_PASSWORD)", "ping"]
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+          readinessProbe:
+            exec:
+              command: ["mysql", "-u", "root", "-p$(MYSQL_ROOT_PASSWORD)", "-e", "SELECT 1"]
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+      securityContext:
+        # Recommended: Run as non-root user for security
+        runAsUser: 999 # MariaDB user ID, check image documentation
+        fsGroup: 999
+  volumeClaimTemplates:
+    - metadata:
+        name: mariadb-persistent-storage
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 10Gi # Adjust storage size as needed

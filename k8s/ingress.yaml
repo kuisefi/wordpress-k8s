@@ -1,0 +1,28 @@
+# k8s/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: wordpress-ingress
+  namespace: NAMESPACE_PLACEHOLDER
+  annotations:
+    # Use nginx.ingress.kubernetes.io/rewrite-target: /$1 for simple path rewrites
+    # For a root path, it's often not needed.
+    # kubernetes.io/ingress.class: nginx # Not needed if default IngressClass is set
+    nginx.ingress.kubernetes.io/proxy-body-size: "20m" # Max body size for uploads
+    nginx.ingress.kubernetes.io/ssl-redirect: "false" # Set to "true" for HTTPS
+spec:
+  rules:
+    - host: INGRESS_HOST_PLACEHOLDER # Use host from .env . Replace with your actual domain
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: wordpress # Refers to the WordPress Service
+                port:
+                  number: 80
+  # tls: # Uncomment for HTTPS with cert-manager
+  #   - hosts:
+  #       - wordpress.local
+  #     secretName: wordpress-tls-secret # Cert-manager will create this secret

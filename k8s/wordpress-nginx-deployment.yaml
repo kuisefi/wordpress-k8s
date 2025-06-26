@@ -1,0 +1,67 @@
+# k8s/wordpress-nginx-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wordpress-nginx
+  namespace: NAMESPACE_PLACEHOLDER
+  labels:
+    app: wordpress
+    tier: frontend
+    component: nginx
+spec:
+  replicas: 2 # Scale up for high availability and load
+  selector:
+    matchLabels:
+      app: wordpress
+      tier: frontend
+      component: nginx
+  template:
+    metadata:
+      labels:
+        app: wordpress
+        tier: frontend
+        component: nginx
+    spec:
+      containers:
+        - name: nginx
+          image: NGINX_IMAGE_PLACEHOLDER # Use image from .env . Use a specific version for stability
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: wordpress-persistent-storage
+              mountPath: /var/www/html # Shared volume with PHP-FPM for WordPress files
+            - name: nginx-config-volume
+              mountPath: /etc/nginx/conf.d/default.conf # Mount Nginx config
+              subPath: nginx.conf # Mount specific file from ConfigMap
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "128Mi"
+              cpu: "100m"
+      volumes:
+        - name: wordpress-persistent-storage # Same PVC as PHP-FPM
+          persistentVolumeClaim:
+            claimName: wordpress-pvc
+        - name: nginx-config-volume
+          configMap:
+            name: wordpress-nginx-config
+            items:
+              - key: nginx.conf
+                path: nginx.conf

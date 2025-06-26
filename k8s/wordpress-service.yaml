@@ -1,0 +1,19 @@
+# k8s/wordpress-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: wordpress
+  namespace: NAMESPACE_PLACEHOLDER
+  labels:
+    app: wordpress
+    tier: frontend
+spec:
+  ports:
+    - port: 80
+      targetPort: 80
+      protocol: TCP
+      name: http
+  selector:
+    app: wordpress
+    tier: frontend
+  type: ClusterIP # Use ClusterIP for internal access, Ingress for external

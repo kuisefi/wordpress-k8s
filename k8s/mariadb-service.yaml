@@ -1,0 +1,17 @@
+# k8s/mariadb-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: wordpress-mariadb
+  namespace: NAMESPACE_PLACEHOLDER
+  labels:
+    app: wordpress
+    tier: database
+spec:
+  ports:
+    - port: 3306
+      targetPort: 3306
+  selector:
+    app: wordpress
+    tier: database
+  clusterIP: None # Headless Service for StatefulSet

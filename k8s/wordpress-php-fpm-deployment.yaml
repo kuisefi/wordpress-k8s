@@ -1,0 +1,72 @@
+# k8s/wordpress-php-fpm-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wordpress-php-fpm
+  namespace: NAMESPACE_PLACEHOLDER
+  labels:
+    app: wordpress
+    tier: frontend
+spec:
+  replicas: 2 # Scale up for high availability and load
+  selector:
+    matchLabels:
+      app: wordpress
+      tier: frontend
+      component: php-fpm
+  template:
+    metadata:
+      labels:
+        app: wordpress
+        tier: frontend
+        component: php-fpm
+    spec:
+      containers:
+        - name: wordpress-php-fpm
+          image: WORDPRESS_IMAGE_PLACEHOLDER # Use image from .env . Use a specific version of WordPress FPM image
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: WORDPRESS_DB_HOST
+              value: wordpress-mariadb:3306 # Use the MariaDB Service name
+            - name: WORDPRESS_DB_NAME
+              value: MARIADB_DATABASE_PLACEHOLDER
+            - name: WORDPRESS_DB_USER
+              value: MARIADB_USER_PLACEHOLDER
+            - name: WORDPRESS_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: wordpress-secrets
+                  key: mariadb-password
+            - name: WORDPRESS_TABLE_PREFIX
+              value: wp_ # Optional, default is wp_
+            # For production, define salts and keys from https://api.wordpress.org/secret-key/1.1/salt/
+            - name: WORDPRESS_DEBUG
+              value: "0"
+          ports:
+            - containerPort: 9000 # PHP-FPM listens on port 9000
+          volumeMounts:
+            - name: wordpress-persistent-storage
+              mountPath: /var/www/html # This will contain WordPress files
+          livenessProbe:
+            tcpSocket:
+              port: 9000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+          readinessProbe:
+            tcpSocket:
+              port: 9000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+      volumes:
+        - name: wordpress-persistent-storage
+          persistentVolumeClaim:
+            claimName: wordpress-pvc # This PVC will be created below

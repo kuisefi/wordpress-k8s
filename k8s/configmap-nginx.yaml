@@ -1,0 +1,38 @@
+# k8s/configmap-nginx.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: wordpress-nginx-config
+  namespace: NAMESPACE_PLACEHOLDER
+data:
+  nginx.conf: |
+    server {
+        listen 80;
+        server_name _; # Replace with your actual domain or use underscore for any
+        root /var/www/html;
+        index index.php index.html index.htm;
+
+        client_max_body_size 20M; # Max file upload size
+
+        location / {
+            try_files $uri $uri/ /index.php?$args;
+        }
+
+        location ~ \.php$ {
+            # Pass PHP scripts to PHP-FPM
+            include fastcgi_params;
+            fastcgi_pass 127.0.0.1:9000; # This will be the PHP-FPM service (e.g., wordpress-php-fpm:9000 if not using localhost)
+            # In K8s, Nginx and PHP-FPM are often in separate containers in the same pod (shared network localhost) or separate pods communicating via service
+            # If in same pod: fastcgi_pass 127.0.0.1:9000;
+            # If separate pods: fastcgi_pass wordpress-php-fpm-service:9000; (where wordpress-php-fpm-service is the service name)
+            # For this example, let's assume they are in separate pods and communicate via service.
+            fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+            fastcgi_param PATH_INFO $fastcgi_path_info;
+            fastcgi_param HTTPS $fastcgi_https; # Pass HTTPS status
+        }
+
+        # Deny access to .htaccess files, if Apache's document root
+        location ~ /\.ht {
+            deny all;
+        }
+    }
